@@ -79,3 +79,20 @@
 * {
   user-select: none;
 }
+
+.notSupported {
+  display: none;
+}
+
+@media (max-width: 800px), (max-height: 600px) {
+  .container {
+    display: none;
+  }
+  .notSupported {
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    padding: 30px;
+    color: white;
+  }
+}

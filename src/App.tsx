@@ -240,25 +240,30 @@ function App() {
   }
 
   return (
-    <div className={styles.container}>
-      {!playing.current && !gameOver.current && <Play resetGame={resetGame} />}
-      {gameOver.current && (
-        <GameOver displayTime={displayTime} resetGame={resetGame} />
-      )}
-      {playing.current && !gameOver.current && (
-        <div className={styles.time}>{displayTime}</div>
-      )}
-      <canvas
-        onClick={(e) => {
-          // toValue.current = canvasRef.current!.height - e.clientY;
-          scoreClick(calculateDistance(...getCursorPosition(e)));
-        }}
-        width={800}
-        height={600}
-        ref={canvasRef}
-        className={styles.canvas}
-      ></canvas>
-    </div>
+    <>
+      <div className={styles.container}>
+        {!playing.current && !gameOver.current && (
+          <Play resetGame={resetGame} />
+        )}
+        {gameOver.current && (
+          <GameOver displayTime={displayTime} resetGame={resetGame} />
+        )}
+        {playing.current && !gameOver.current && (
+          <div className={styles.time}>{displayTime}</div>
+        )}
+        <canvas
+          onClick={(e) => {
+            // toValue.current = canvasRef.current!.height - e.clientY;
+            scoreClick(calculateDistance(...getCursorPosition(e)));
+          }}
+          width={800}
+          height={600}
+          ref={canvasRef}
+          className={styles.canvas}
+        ></canvas>
+      </div>
+      <div className={styles.notSupported}>This game is not for mobile.</div>
+    </>
   );
 }
 
