@@ -43,7 +43,7 @@ function App() {
   };
 
   const getRandomPositions = () => {
-    const NUM_COORDS = 7;
+    const NUM_COORDS = 3;
     const result = [];
     for (let i = 0; i < NUM_COORDS; i++) {
       result.push(getRandomPosition());
@@ -117,9 +117,9 @@ function App() {
     if (!neverClicked.current) {
       pixelRadius.current -= 0.001;
       backgroundPulseOpacity.current = backgroundPulseOpacity.current + 0.02;
-      if (backgroundPulseOpacity.current > 130) {
+      if (backgroundPulseOpacity.current > 120) {
         console.log("max background");
-        backgroundPulseOpacity.current = 130;
+        backgroundPulseOpacity.current = 120;
       }
 
       if (pixelRadius.current <= 1) {
@@ -180,18 +180,18 @@ function App() {
 
   const scoreClick = (distance: number) => {
     if (distance < 1.5) {
-      toValue.current -= 20 * correctWeight.current;
+      toValue.current -= 30 * correctWeight.current;
     } else if (distance < 10) {
-      toValue.current -= (10 - distance) * correctWeight.current;
+      toValue.current -= (15 - distance) * correctWeight.current;
     } else if (distance > 30) {
       toValue.current += 30;
     } else if (distance > 10) {
       toValue.current += 15;
     }
 
-    toValue.current = Math.max(0, toValue.current);
+    toValue.current = Math.max(-200, toValue.current);
     if (neverClicked.current) {
-      toValueDelta.current = 0.5;
+      toValueDelta.current = 0.7;
       time.current = Date.now();
       neverClicked.current = false;
     }
