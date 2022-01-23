@@ -43,7 +43,7 @@ function App() {
   };
 
   const getRandomPositions = () => {
-    const NUM_COORDS = 5;
+    const NUM_COORDS = 7;
     const result = [];
     for (let i = 0; i < NUM_COORDS; i++) {
       result.push(getRandomPosition());
@@ -75,9 +75,8 @@ function App() {
     if (!ctx) return;
 
     ctx.clearRect(0, 0, 10000, 10000);
-    const bgColor = 136 + backgroundPulseOpacity.current;
+    const bgColor = backgroundPulseOpacity.current;
     ctx.fillStyle = `rgb(${bgColor}, ${bgColor}, ${bgColor})`;
-    console.log(ctx.fillStyle);
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (!playing.current) {
@@ -92,8 +91,6 @@ function App() {
       );
     }
 
-    drawPixels(currentCoords.current, ctx);
-
     ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
     if (gameOver.current) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -107,6 +104,8 @@ function App() {
       canvas.height
     );
 
+    drawPixels(currentCoords.current, ctx);
+
     toValue.current += toValueDelta.current;
 
     // ctx.fillRect(0, 0, 1000, 1000);
@@ -116,19 +115,20 @@ function App() {
     }
 
     if (!neverClicked.current) {
-      pixelRadius.current -= 0.01;
+      pixelRadius.current -= 0.001;
+      backgroundPulseOpacity.current = backgroundPulseOpacity.current + 0.02;
+      if (backgroundPulseOpacity.current > 130) {
+        console.log("max background");
+        backgroundPulseOpacity.current = 130;
+      }
 
-      if (pixelRadius.current < 1) {
+      if (pixelRadius.current <= 1) {
+        console.log("min pixel");
+
         pixelRadius.current = 1;
         toValueDelta.current += 0.0001;
-        if (toValueDelta.current > 0.4) {
-          toValueDelta.current = 0.4;
-          backgroundPulseOpacity.current =
-            backgroundPulseOpacity.current + 0.01;
-
-          if (backgroundPulseOpacity.current > 180) {
-            backgroundPulseOpacity.current = 180;
-          }
+        if (toValueDelta.current > 2) {
+          toValueDelta.current = 2;
         }
       }
     }
@@ -146,7 +146,6 @@ function App() {
       const thisScore = ((new Date().getTime() - time.current) / 1000).toFixed(
         1
       );
-      console.log("DIAPLSY TIME", thisScore);
       if (highScore < parseFloat(thisScore)) {
         localStorage.setItem(today.toISOString() + "-highscore", thisScore);
       }
@@ -180,9 +179,8 @@ function App() {
   };
 
   const scoreClick = (distance: number) => {
-    console.log(distance);
     if (distance < 1.5) {
-      toValue.current -= 10 * correctWeight.current;
+      toValue.current -= 20 * correctWeight.current;
     } else if (distance < 10) {
       toValue.current -= (10 - distance) * correctWeight.current;
     } else if (distance > 30) {
@@ -193,7 +191,7 @@ function App() {
 
     toValue.current = Math.max(0, toValue.current);
     if (neverClicked.current) {
-      toValueDelta.current = 0.3;
+      toValueDelta.current = 0.5;
       time.current = Date.now();
       neverClicked.current = false;
     }
