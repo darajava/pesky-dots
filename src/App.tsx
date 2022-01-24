@@ -189,7 +189,7 @@ function App() {
       toValue.current += 15;
     }
 
-    toValue.current = Math.max(-200, toValue.current);
+    toValue.current = Math.max(-20, toValue.current);
     if (neverClicked.current) {
       toValueDelta.current = 0.7;
       time.current = Date.now();
