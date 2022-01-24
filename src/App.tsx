@@ -43,7 +43,7 @@ function App() {
   };
 
   const getRandomPositions = () => {
-    const NUM_COORDS = 3;
+    const NUM_COORDS = 1;
     const result = [];
     for (let i = 0; i < NUM_COORDS; i++) {
       result.push(getRandomPosition());
