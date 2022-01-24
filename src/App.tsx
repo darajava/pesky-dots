@@ -254,7 +254,7 @@ function App() {
           <div className={styles.time}>{displayTime}</div>
         )}
         <canvas
-          onClick={(e) => {
+          onMouseDown={(e) => {
             // toValue.current = canvasRef.current!.height - e.clientY;
             scoreClick(calculateDistance(...getCursorPosition(e)));
           }}
