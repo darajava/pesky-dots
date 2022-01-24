@@ -91,12 +91,15 @@ function App() {
       );
     }
 
-    ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
     if (gameOver.current) {
+      drawPixels(currentCoords.current, ctx);
+      ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
       return;
     }
 
+    ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
     ctx.fillRect(
       0,
       canvas.height - currentValue.current,
@@ -127,18 +130,19 @@ function App() {
 
         pixelRadius.current = 1;
         toValueDelta.current += 0.0001;
-        if (toValueDelta.current > 2) {
-          toValueDelta.current = 2;
+        if (toValueDelta.current > 3) {
+          toValueDelta.current = 3;
         }
       }
     }
 
+    // if game over
     if (toValue.current > canvas.height) {
       // playing.current = false;
       gameOver.current = true;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      pixelRadius.current = 3;
+      pixelRadius.current = 5;
 
       const highScore = parseInt(
         localStorage.getItem(today.toISOString() + "-highscore") || "0"
@@ -191,7 +195,7 @@ function App() {
 
     toValue.current = Math.max(-20, toValue.current);
     if (neverClicked.current) {
-      toValueDelta.current = 0.7;
+      toValueDelta.current = 1;
       time.current = Date.now();
       neverClicked.current = false;
     }
