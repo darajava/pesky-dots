@@ -1,236 +1,158 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import logo from "./logo.svg";
+import React, { useEffect, useRef } from "react";
 import "./App.css";
 import styles from "./styles.module.css";
-import GameOver from "./GameOver";
-import Play from "./Play";
+
+//@ts-ignore
+CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  this.beginPath();
+  this.moveTo(x + r, y);
+  this.arcTo(x + w, y, x + w, y + h, r);
+  this.arcTo(x + w, y + h, x, y + h, r);
+  this.arcTo(x, y + h, x, y, r);
+  this.arcTo(x, y, x + w, y, r);
+  this.closePath();
+  return this;
+};
+
+const WIDTH = 800;
+const HEIGHT = 600;
+const COLUMNS = 27;
+const ROWS = 20;
+const CELL_WIDTH = WIDTH / COLUMNS;
+const CELL_HEIGHT = HEIGHT / ROWS;
+const CELL_PADDING = 5;
+
+const ws = new WebSocket("ws://localhost:6969");
 
 function App() {
+  const grid = useRef<number[][]>([]);
+  const errorDot = useRef<[number, number]>([-1, -1]);
+  const cursorPosition = useRef<[number, number]>([-100, -100]);
+  const player = useRef(Math.random() < 0.5 ? -1 : 1);
+
   function init() {
-    window.requestAnimationFrame(draw);
+    window.requestAnimationFrame(() => draw());
+  }
+
+  function flipGrid() {
+    if (player.current === -1) {
+      grid.current = grid.current.reverse();
+    }
+  }
+
+  function flipPosition(position: [number, number]) {
+    if (player.current === -1) {
+      return [position[0], ROWS - position[1] - 1];
+    }
+
+    return position;
   }
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const toValue = useRef(0);
-  const currentValue = useRef(0);
-  const currentCoords = useRef<number[][]>();
-  const [distance, setDistance] = useState(0);
-  const time = useRef(Date.now());
-  const correctWeight = useRef(10);
-  const [displayTime, setDisplayTime] = useState("");
-  const pixelRadius = useRef(5);
-  const toValueDelta = useRef(0);
-  const backgroundPulseOpacity = useRef(0);
-
-  const [dummy, setDummy] = useState(0);
-
-  const playing = useRef(false);
-  const gameOver = useRef(false);
-  const neverClicked = useRef(true);
-
-  const drawPixels = (coords: number[][], ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = "white";
-    for (const coord of coords) {
-      ctx.fillRect(
-        coord[0],
-        coord[1],
-        pixelRadius.current,
-        pixelRadius.current
-      );
-    }
+  const getGridAlignedCoordsFromMousePosition = (): [number, number] => {
+    return [
+      cursorPosition.current[0] - (cursorPosition.current[0] % CELL_WIDTH),
+      cursorPosition.current[1] - (cursorPosition.current[1] % CELL_HEIGHT),
+    ];
   };
 
-  const getRandomPositions = () => {
-    const NUM_COORDS = 1;
-    const result = [];
-    for (let i = 0; i < NUM_COORDS; i++) {
-      result.push(getRandomPosition());
-    }
-
-    return result;
-  };
-
-  const getRandomPosition = () => {
-    const width = canvasRef.current!.width;
-    const height = canvasRef.current!.height;
+  const getGridCoordsFromMousePosition = (): [number, number] => {
+    const gridAligned = getGridAlignedCoordsFromMousePosition();
 
     return [
-      Math.random() * (width * 0.8) + width * 0.1,
-      Math.random() * (height * 0.8) + height * 0.1,
-    ].map(Math.round);
+      Math.round(gridAligned[0] / CELL_WIDTH),
+      Math.round(gridAligned[1] / CELL_HEIGHT),
+    ];
   };
 
-  const draw = () => {
+  const draw = (dontRecurse?: boolean) => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    if (!currentCoords.current) {
-      currentCoords.current = getRandomPositions();
-    }
-
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, 10000, 10000);
-    const bgColor = backgroundPulseOpacity.current;
-    ctx.fillStyle = `rgb(${bgColor}, ${bgColor}, ${bgColor})`;
+    ctx.fillStyle = `#888`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (!playing.current) {
-      return;
-    }
+    ctx.fillStyle = `#707070`;
 
-    if (neverClicked.current) {
-      setDisplayTime("0");
-    } else {
-      setDisplayTime(
-        ((new Date().getTime() - time.current) / 1000).toFixed(1) + ""
-      );
-    }
+    const mouseCoords = getGridAlignedCoordsFromMousePosition();
+    // @ts-ignore
+    ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 5).fill();
 
-    if (gameOver.current) {
-      drawPixels(currentCoords.current, ctx);
-      ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const gridMouseCoords = getGridCoordsFromMousePosition();
+    grid.current.every((row, y) => {
+      // console.log(row, y);
+      row.every((cell, x) => {
+        // console.log(cell);
 
-      return;
-    }
+        if (cell === -1 || cell === 1) {
+          ctx.fillStyle = cell === 1 ? "#ccc" : `#333`;
 
-    ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
-    ctx.fillRect(
-      0,
-      canvas.height - currentValue.current,
-      canvas.width,
-      canvas.height
-    );
+          if (
+            gridMouseCoords[0] === x &&
+            gridMouseCoords[1] === y &&
+            cell === 1
+          ) {
+            ctx.fillStyle = "#ddd";
+          }
 
-    drawPixels(currentCoords.current, ctx);
+          if (errorDot.current[0] === x && errorDot.current[1] === y)
+            ctx.fillStyle = "#e99696";
 
-    toValue.current += toValueDelta.current;
-
-    // ctx.fillRect(0, 0, 1000, 1000);
-    if (currentValue !== toValue) {
-      currentValue.current =
-        currentValue.current + (toValue.current - currentValue.current) / 10;
-    }
-
-    if (!neverClicked.current) {
-      pixelRadius.current -= 0.001;
-      backgroundPulseOpacity.current = backgroundPulseOpacity.current + 0.02;
-      if (backgroundPulseOpacity.current > 120) {
-        console.log("max background");
-        backgroundPulseOpacity.current = 120;
-      }
-
-      if (pixelRadius.current <= 1) {
-        console.log("min pixel");
-
-        pixelRadius.current = 1;
-        toValueDelta.current += 0.0001;
-        if (toValueDelta.current > 3) {
-          toValueDelta.current = 3;
+          ctx
+            // @ts-ignore
+            .roundRect(
+              CELL_WIDTH * x + CELL_PADDING,
+              CELL_HEIGHT * y + CELL_PADDING,
+              CELL_WIDTH - CELL_PADDING * 2,
+              CELL_HEIGHT - CELL_PADDING * 2,
+              100
+            )
+            .fill();
         }
-      }
-    }
+        return true;
+      });
+      return true;
+    });
 
-    // if game over
-    if (toValue.current > canvas.height) {
-      // playing.current = false;
-      gameOver.current = true;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      pixelRadius.current = 5;
-
-      const highScore = parseInt(
-        localStorage.getItem(today.toISOString() + "-highscore") || "0"
-      );
-      const thisScore = ((new Date().getTime() - time.current) / 1000).toFixed(
-        1
-      );
-      if (highScore < parseFloat(thisScore)) {
-        localStorage.setItem(today.toISOString() + "-highscore", thisScore);
-      }
-      setDummy(Math.random());
-    }
-
-    window.requestAnimationFrame(draw);
+    if (!dontRecurse) window.requestAnimationFrame(() => draw());
   };
 
   useEffect(() => {
-    init();
-  }, [canvasRef.current]);
+    ws.onopen = function open() {
+      ws.send(JSON.stringify({ type: "hello", data: { one: 1 } }));
+    };
 
-  const calculateDistance = (x1: number, y1: number) => {
-    let closest = 100000;
-    let closestIndex = -1;
+    ws.onmessage = function message(data) {
+      const message = JSON.parse(data.data);
+      console.log("from ws", message);
 
-    currentCoords.current!.forEach((coord, i) => {
-      const distance = Math.hypot(coord[0] - x1, coord[1] - y1);
-      if (distance < closest) {
-        closest = distance;
-        closestIndex = i;
+      switch (message.type) {
+        case "init":
+          grid.current = message.data.gameState.grid;
+          flipGrid();
+          console.log(message.data.gameState);
+          init();
+          break;
+        case "update":
+          grid.current = message.data.gameState.grid;
+          flipGrid();
+
+          break;
+        case "gameover":
+          alert(message.data.message);
+
+          break;
       }
-    });
-
-    if (currentCoords.current![closestIndex]) {
-      currentCoords.current![closestIndex] = getRandomPosition();
-    }
-
-    return closest;
-  };
-
-  const scoreClick = (distance: number) => {
-    if (distance < 1.5) {
-      toValue.current -= 30 * correctWeight.current;
-    } else if (distance < 10) {
-      toValue.current -= (15 - distance) * correctWeight.current;
-    } else if (distance > 30) {
-      toValue.current += 30;
-    } else if (distance > 10) {
-      toValue.current += 15;
-    }
-
-    toValue.current = Math.max(-20, toValue.current);
-    if (neverClicked.current) {
-      toValueDelta.current = 1;
-      time.current = Date.now();
-      neverClicked.current = false;
-    }
-
-    // currentCoords.current = getRandomPositions();
-  };
-
-  const resetGame = () => {
-    playing.current = true;
-    gameOver.current = false;
-
-    toValue.current = 0;
-    currentValue.current = 0;
-    currentCoords.current = getRandomPositions();
-    time.current = Date.now();
-    correctWeight.current = 10;
-    pixelRadius.current = 5;
-    toValueDelta.current = 0;
-    backgroundPulseOpacity.current = 0;
-    neverClicked.current = true;
-
-    setDummy(Math.random());
-    draw();
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const playsToday = localStorage.getItem(today.toISOString());
-
-    if (!playsToday) {
-      localStorage.setItem(today.toISOString(), "1");
-    } else {
-      localStorage.setItem(today.toISOString(), parseInt(playsToday) + 1 + "");
-    }
-  };
+    };
+  });
 
   function getCursorPosition(
     event: React.MouseEvent<HTMLCanvasElement, MouseEvent>
@@ -241,25 +163,30 @@ function App() {
     return [x, y];
   }
 
+  const makeMove = () => {
+    const position = getGridCoordsFromMousePosition();
+    ws.send(
+      JSON.stringify({
+        type: "move",
+        data: { position: flipPosition(position), player: player.current },
+      })
+    );
+  };
+
   return (
     <>
       <div className={styles.container}>
-        {!playing.current && !gameOver.current && (
-          <Play resetGame={resetGame} />
-        )}
-        {gameOver.current && (
-          <GameOver displayTime={displayTime} resetGame={resetGame} />
-        )}
-        {playing.current && !gameOver.current && (
-          <div className={styles.time}>{displayTime}</div>
-        )}
         <canvas
           onMouseDown={(e) => {
             // toValue.current = canvasRef.current!.height - e.clientY;
-            scoreClick(calculateDistance(...getCursorPosition(e)));
+            makeMove();
           }}
-          width={800}
-          height={600}
+          onMouseMove={(e) => {
+            // toValue.current = canvasRef.current!.height - e.clientY;
+            cursorPosition.current = getCursorPosition(e);
+          }}
+          width={WIDTH}
+          height={HEIGHT}
           ref={canvasRef}
           className={styles.canvas}
         ></canvas>

@@ -11,7 +11,7 @@
   width: 800px;
   height: 600px;
   /* background-color: #888; */
-  cursor: crosshair;
+  /* cursor: none; */
 }
 
 .time {
