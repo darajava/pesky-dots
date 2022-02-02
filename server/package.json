@@ -9,8 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "common": "file:../common",
     "typescript": "^4.5.5",
-    "typescritp": "^1.0.0",
     "ws": "^8.4.2"
   }
 }

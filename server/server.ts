@@ -1,15 +1,12 @@
 import { WebSocketServer, WebSocket } from "ws";
+import { Board, GameState, Position } from "common/dist/types";
 
-const wss = new WebSocketServer({ port: 6969 });
+const wss = new WebSocketServer({ port: 42069 });
 
 // These must match the client
 const COLUMNS = 27;
 const ROWS = 20;
-const FILLED_ROWS = 7;
-
-type GameState = {
-  grid?: number[][];
-};
+const FILLED_ROWS = 6;
 
 let gameState: GameState = {};
 
@@ -33,34 +30,87 @@ const updateGrid = (
   player: number,
   ws: WebSocket
 ) => {
-  if (gameState.grid[position[1]][position[0]] === player) {
-    // If we click on our piece, no matter what we are moving it
-    gameState.grid[position[1]][position[0]] = 0;
+  const movedFrom: { position: Position | undefined; player: number }[] = [];
+  const movedTo: { position: Position | undefined; player: number }[] = [];
 
-    // We are always jumping over something
-    if (position[1] - player >= 0 && position[1] - player < ROWS) {
-      // If we are jumping over an enemy piece, remove it
-      if (gameState.grid[position[1] - player][position[0]] === -player) {
-        gameState.grid[position[1] - player][position[0]] = 0;
-      }
-    }
+  if (gameState.board[position[1]][position[0]] === player) {
+    // If we click on our piece, no matter what we are moving it
+    gameState.board[position[1]][position[0]] = 0;
 
     // If we don't go off the end of the board
     if (position[1] - 2 * player >= 0 && position[1] - 2 * player < ROWS) {
+      // if (position[1] - 3 * player >= 0 && position[1] - 3 * player < ROWS) {
+      //   if (
+      //     gameState.board[position[1] - 3 * player][position[0]] === -player &&
+      //     gameState.board[position[1] - 1 * player][position[0]] === -player
+      //   ) {
+      //     gameState.board[position[1]][position[0]] = 0;
+
+      //     movedFrom.push({
+      //       position: [position[0], position[1]],
+      //       player: player,
+      //     });
+      //     movedTo.push(undefined);
+      //     return [movedFrom, movedTo];
+      //   }
+      // }
+
+      // We are always jumping over something
+      if (position[1] - player >= 0 && position[1] - player < ROWS) {
+        // If we are jumping over an enemy piece, remove it
+        if (gameState.board[position[1] - player][position[0]] === -player) {
+          gameState.board[position[1] - player][position[0]] = 0;
+
+          movedFrom.push({
+            position: [position[0], position[1] - player],
+            player: -player,
+          });
+          movedTo.push(undefined);
+        }
+      }
+
       // If we land on an enemy, suicide also
-      if (gameState.grid[position[1] - 2 * player][position[0]] === -player) {
-        gameState.grid[position[1] - 2 * player][position[0]] = 0;
-        // If we are jumping on a white
+      if (gameState.board[position[1] - 2 * player][position[0]] === -player) {
+        gameState.board[position[1] - 2 * player][position[0]] = 0;
+
+        movedFrom.push({
+          position: [position[0], position[1]],
+          player: player,
+        });
+        movedTo.push({
+          position: [position[0], position[1] - 2 * player],
+          player: player,
+        });
+
+        movedFrom.push({
+          position: [position[0], position[1] - 2 * player],
+          player: -player,
+        });
+        movedTo.push(undefined);
       } else if (
-        gameState.grid[position[1] - 2 * player][position[0]] === player
+        // If we are jumping on a white
+        gameState.board[position[1] - 2 * player][position[0]] === player
       ) {
-        gameState.grid[position[1]][position[0]] = player;
+        gameState.board[position[1]][position[0]] = player;
+
+        // Highlight as the opposite colour (hack)
+        movedFrom.push({
+          position: [position[0], position[1] - 2 * player],
+          player: -player,
+        });
+        movedTo.push(undefined);
         // errorDot.current = [position[0], position[1] - 2];
         // setTimeout(() => {
         //   errorDot.current = [-1, -1];
         // }, 100);
       } else {
-        gameState.grid[position[1] - 2 * player][position[0]] = player;
+        gameState.board[position[1] - 2 * player][position[0]] = player;
+
+        movedFrom.push({ position: [position[0], position[1]], player });
+        movedTo.push({
+          position: [position[0], position[1] - 2 * player],
+          player,
+        });
       }
     } else {
       // alert("game over");
@@ -74,21 +124,29 @@ const updateGrid = (
         );
       }
     }
-  } else if (gameState.grid[position[1]][position[0]] === 0) {
-    if (gameState.grid[position[1]][position[0] - player] === player) {
-      gameState.grid[position[1]][position[0] - player] = 0;
-      gameState.grid[position[1]][position[0]] = player;
+  } else if (gameState.board[position[1]][position[0]] === 0) {
+    if (gameState.board[position[1]][position[0] - player] === player) {
+      gameState.board[position[1]][position[0] - player] = 0;
+      gameState.board[position[1]][position[0]] = player;
+
+      movedFrom.push({ position: [position[0] - player, position[1]], player });
+      movedTo.push({ position: [position[0], position[1]], player });
     }
 
-    if (gameState.grid[position[1]][position[0] + player] === player) {
-      gameState.grid[position[1]][position[0] + player] = 0;
-      gameState.grid[position[1]][position[0]] = player;
+    if (gameState.board[position[1]][position[0] + player] === player) {
+      gameState.board[position[1]][position[0] + player] = 0;
+      gameState.board[position[1]][position[0]] = player;
+
+      movedFrom.push({ position: [position[0] + player, position[1]], player });
+      movedTo.push({ position: [position[0], position[1]], player });
     }
   }
+
+  return [movedFrom, movedTo];
 };
 
 wss.on("connection", function connection(ws) {
-  gameState.grid = generateInitialGrid();
+  gameState.board = generateInitialGrid();
   console.log("started");
 
   ws.send(JSON.stringify({ type: "init", data: { gameState } }));
@@ -99,8 +157,18 @@ wss.on("connection", function connection(ws) {
 
     switch (message.type) {
       case "move":
-        updateGrid(message.data.position, message.data.player, ws);
-        ws.send(JSON.stringify({ type: "update", data: { gameState } }));
+        const [movedFrom, movedTo] = updateGrid(
+          message.data.position,
+          message.data.player,
+          ws
+        );
+
+        ws.send(
+          JSON.stringify({
+            type: "update",
+            data: { gameState, movedTo, movedFrom },
+          })
+        );
 
         break;
     }

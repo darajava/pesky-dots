@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from "react";
 import "./App.css";
 import styles from "./styles.module.css";
+import { Board, GameState, Point, Position } from "common/dist/types";
 
 //@ts-ignore
 CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
@@ -25,13 +26,26 @@ const CELL_WIDTH = WIDTH / COLUMNS;
 const CELL_HEIGHT = HEIGHT / ROWS;
 const CELL_PADDING = 5;
 
-const ws = new WebSocket("ws://localhost:6969");
+const ws = new WebSocket(
+  process.env.NODE_ENV === "development"
+    ? "ws://localhost:42069"
+    : "ws://192.241.254.136:42069"
+);
+
+type Animation = {
+  from: Position;
+  to?: Position;
+  completeAmount: number;
+  player: number;
+};
 
 function App() {
   const grid = useRef<number[][]>([]);
   const errorDot = useRef<[number, number]>([-1, -1]);
   const cursorPosition = useRef<[number, number]>([-100, -100]);
   const player = useRef(Math.random() < 0.5 ? -1 : 1);
+
+  const animationList = useRef<Animation[]>([]);
 
   function init() {
     window.requestAnimationFrame(() => draw());
@@ -43,7 +57,26 @@ function App() {
     }
   }
 
-  function flipPosition(position: [number, number]) {
+  const drawGrid = (ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= ROWS; x++) {
+      ctx.beginPath(); // Start a new path
+      ctx.moveTo(0, x * CELL_HEIGHT); // Move the pen to (30, 50)
+      ctx.lineTo(WIDTH, x * CELL_HEIGHT); // Draw a line to (150, 100)
+      ctx.stroke(); // Render the path
+    }
+    for (let y = 0; y <= COLUMNS; y++) {
+      ctx.beginPath(); // Start a new path
+      ctx.moveTo(y * CELL_WIDTH, 0); // Move the pen to (30, 50)
+      ctx.lineTo(y * CELL_WIDTH, HEIGHT); // Draw a line to (150, 100)
+      ctx.stroke(); // Render the path
+    }
+    ctx.restore();
+  };
+
+  function flipPosition(position: [number, number]): [number, number] {
     if (player.current === -1) {
       return [position[0], ROWS - position[1] - 1];
     }
@@ -69,6 +102,34 @@ function App() {
     ];
   };
 
+  const isPositionInAnimationList = (position: Position) => {
+    // console.log(position + ";sd;ds;d");
+    return (
+      animationList.current.findIndex((e) => {
+        if (!e.to) return false;
+
+        return e.to[0] === position[0] && e.to[1] === position[1];
+      }) >= 0
+    );
+  };
+
+  const getTween = (animation: Animation) => {
+    if (!animation.to) {
+      return;
+    }
+
+    const x =
+      animation.from[0] +
+      (animation.to[0] - animation.from[0]) * animation.completeAmount;
+    const y =
+      animation.from[1] +
+      (animation.to[1] - animation.from[1]) * animation.completeAmount;
+
+    const [x1, y1] = flipPosition([x, y]);
+
+    return [CELL_WIDTH * x1 + CELL_PADDING, CELL_HEIGHT * y1 + CELL_PADDING];
+  };
+
   const draw = (dontRecurse?: boolean) => {
     if (!canvasRef.current) return;
 
@@ -76,21 +137,27 @@ function App() {
     const ctx = canvas.getContext("2d");
 
     if (!ctx) return;
+    if (!grid.current) return;
 
     ctx.fillStyle = `#888`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = `#707070`;
+    ctx.fillStyle = `#797979`;
 
     const mouseCoords = getGridAlignedCoordsFromMousePosition();
     // @ts-ignore
-    ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 5).fill();
+    ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 0).fill();
+    drawGrid(ctx);
 
     const gridMouseCoords = getGridCoordsFromMousePosition();
     grid.current.every((row, y) => {
       // console.log(row, y);
       row.every((cell, x) => {
         // console.log(cell);
+
+        if (isPositionInAnimationList(flipPosition([x, y]))) {
+          return true;
+        }
 
         if (cell === -1 || cell === 1) {
           ctx.fillStyle = cell === 1 ? "#ccc" : `#333`;
@@ -122,6 +189,46 @@ function App() {
       return true;
     });
 
+    for (let animation of animationList.current) {
+      const [x, y] = flipPosition(animation.from);
+
+      ctx.fillStyle = animation.player === 1 ? "#ccc" : `#333`;
+
+      const tween = getTween(animation);
+      if (tween) {
+        ctx
+          // @ts-ignore
+          .roundRect(
+            ...tween,
+            CELL_WIDTH - CELL_PADDING * 2,
+            CELL_HEIGHT - CELL_PADDING * 2,
+            100
+          )
+          .fill();
+      } else {
+        ctx.save();
+        ctx.globalAlpha = 1 - animation.completeAmount;
+
+        ctx
+          // @ts-ignore
+          .roundRect(
+            CELL_WIDTH * x + CELL_PADDING,
+            CELL_HEIGHT * y + CELL_PADDING,
+            CELL_WIDTH - CELL_PADDING * 2,
+            CELL_HEIGHT - CELL_PADDING * 2,
+            100
+          )
+          .fill();
+
+        ctx.restore();
+      }
+      animation.completeAmount += 0.2;
+    }
+
+    animationList.current = animationList.current.filter((e) => {
+      return e.completeAmount < 1;
+    });
+
     if (!dontRecurse) window.requestAnimationFrame(() => draw());
   };
 
@@ -136,13 +243,24 @@ function App() {
 
       switch (message.type) {
         case "init":
-          grid.current = message.data.gameState.grid;
+          grid.current = message.data.gameState.board;
           flipGrid();
           console.log(message.data.gameState);
           init();
           break;
         case "update":
-          grid.current = message.data.gameState.grid;
+          grid.current = message.data.gameState.board;
+          for (let i = 0; i < message.data.movedFrom?.length; i++) {
+            console.log(message.data.movedFrom[i].player + "@");
+            animationList.current.push({
+              from: message.data.movedFrom[i].position,
+              to: message.data.movedTo[i]?.position,
+              completeAmount: 0,
+              player: message.data.movedFrom[i].player,
+            });
+          }
+
+          console.log(animationList.current);
           flipGrid();
 
           break;
@@ -165,6 +283,7 @@ function App() {
 
   const makeMove = () => {
     const position = getGridCoordsFromMousePosition();
+    console.log(position);
     ws.send(
       JSON.stringify({
         type: "move",
