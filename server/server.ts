@@ -115,11 +115,11 @@ const updateGrid = (
     } else {
       // alert("game over");
       if (player === -1) {
-        ws.send(
+        broadcast(
           JSON.stringify({ type: "gameover", data: { message: "Black wins" } })
         );
       } else {
-        ws.send(
+        broadcast(
           JSON.stringify({ type: "gameover", data: { message: "White wins" } })
         );
       }
@@ -147,6 +147,12 @@ const updateGrid = (
 
 const connections: { id: number; ws: WebSocket }[] = [];
 
+const broadcast = (message: string) => {
+  for (const connection of connections) {
+    connection.ws.send(message);
+  }
+};
+
 wss.on("connection", function connection(ws) {
   gameState.board = generateInitialGrid();
   console.log("started");
@@ -169,7 +175,7 @@ wss.on("connection", function connection(ws) {
         );
 
         for (const connection of connections) {
-          connection.ws.send(
+          broadcast(
             JSON.stringify({
               type: "update",
               data: { gameState, movedTo, movedFrom },
