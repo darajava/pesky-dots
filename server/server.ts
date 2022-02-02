@@ -145,9 +145,14 @@ const updateGrid = (
   return [movedFrom, movedTo];
 };
 
+const connections: { id: number; ws: WebSocket }[] = [];
+
 wss.on("connection", function connection(ws) {
   gameState.board = generateInitialGrid();
   console.log("started");
+  const id = Math.round(Math.random() * 1000000);
+
+  connections.push({ ws, id });
 
   ws.send(JSON.stringify({ type: "init", data: { gameState } }));
 
@@ -163,14 +168,22 @@ wss.on("connection", function connection(ws) {
           ws
         );
 
-        ws.send(
-          JSON.stringify({
-            type: "update",
-            data: { gameState, movedTo, movedFrom },
-          })
-        );
-
-        break;
+        for (const connection of connections) {
+          connection.ws.send(
+            JSON.stringify({
+              type: "update",
+              data: { gameState, movedTo, movedFrom },
+            })
+          );
+        }
     }
+  });
+
+  ws.on("close", () => {
+    const i = connections.findIndex((connection) => {
+      return connection.id === id;
+    });
+
+    connections.splice(i, 1);
   });
 });
