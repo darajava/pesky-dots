@@ -166,15 +166,6 @@ function App() {
 
         if (cell === -1 || cell === 1) {
           ctx.fillStyle = cell === 1 ? P1_COLOR : P2_COLOR;
-
-          if (
-            gridMouseCoords[0] === x &&
-            gridMouseCoords[1] === y &&
-            cell === 1
-          ) {
-            ctx.fillStyle = "#ddd";
-          }
-
           if (errorDot.current[0] === x && errorDot.current[1] === y)
             ctx.fillStyle = "#e99696";
 
