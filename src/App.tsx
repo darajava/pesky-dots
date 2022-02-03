@@ -26,6 +26,11 @@ const CELL_WIDTH = WIDTH / COLUMNS;
 const CELL_HEIGHT = HEIGHT / ROWS;
 const CELL_PADDING = 5;
 
+const P1_COLOR = "#5ea4e3";
+const P2_COLOR = "black";
+
+const BACKGROUND_COLOR = "smokewhite";
+
 const ws = new WebSocket(
   process.env.NODE_ENV === "development"
     ? "ws://localhost:42069"
@@ -147,7 +152,7 @@ function App() {
     const mouseCoords = getGridAlignedCoordsFromMousePosition();
     // @ts-ignore
     ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 0).fill();
-    drawGrid(ctx);
+    // drawGrid(ctx);
 
     const gridMouseCoords = getGridCoordsFromMousePosition();
     grid.current.every((row, y) => {
@@ -160,7 +165,7 @@ function App() {
         }
 
         if (cell === -1 || cell === 1) {
-          ctx.fillStyle = cell === 1 ? "#ccc" : `#333`;
+          ctx.fillStyle = cell === 1 ? P1_COLOR : P2_COLOR;
 
           if (
             gridMouseCoords[0] === x &&
@@ -192,7 +197,7 @@ function App() {
     for (let animation of animationList.current) {
       const [x, y] = flipPosition(animation.from);
 
-      ctx.fillStyle = animation.player === 1 ? "#ccc" : `#333`;
+      ctx.fillStyle = animation.player === 1 ? P1_COLOR : P2_COLOR;
 
       const tween = getTween(animation);
       if (tween) {
