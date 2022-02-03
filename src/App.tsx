@@ -20,8 +20,8 @@ CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
 
 const WIDTH = 800;
 const HEIGHT = 600;
-const COLUMNS = 16;
-const ROWS = 12;
+const COLUMNS = 14;
+const ROWS = 8;
 const CELL_WIDTH = WIDTH / COLUMNS;
 const CELL_HEIGHT = HEIGHT / ROWS;
 const CELL_PADDING = 5;
