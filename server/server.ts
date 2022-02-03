@@ -174,14 +174,12 @@ wss.on("connection", function connection(ws) {
           ws
         );
 
-        for (const connection of connections) {
-          broadcast(
-            JSON.stringify({
-              type: "update",
-              data: { gameState, movedTo, movedFrom },
-            })
-          );
-        }
+        broadcast(
+          JSON.stringify({
+            type: "update",
+            data: { gameState, movedTo, movedFrom },
+          })
+        );
     }
   });
 
