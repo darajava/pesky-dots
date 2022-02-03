@@ -20,7 +20,7 @@ CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
 
 const WIDTH = 800;
 const HEIGHT = 600;
-const COLUMNS = 15;
+const COLUMNS = 16;
 const ROWS = 12;
 const CELL_WIDTH = WIDTH / COLUMNS;
 const CELL_HEIGHT = HEIGHT / ROWS;
@@ -144,7 +144,7 @@ function App() {
     if (!ctx) return;
     if (!grid.current) return;
 
-    ctx.fillStyle = `#888`;
+    ctx.fillStyle = BACKGROUND_COLOR;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = `#797979`;
