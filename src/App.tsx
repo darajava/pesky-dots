@@ -29,7 +29,7 @@ const CELL_PADDING = 5;
 const P1_COLOR = "#5ea4e3";
 const P2_COLOR = "black";
 
-const BACKGROUND_COLOR = "#ffffff";
+const BACKGROUND_COLOR = "#f4f4f4";
 
 const ws = new WebSocket(
   process.env.NODE_ENV === "development"
@@ -64,7 +64,7 @@ function App() {
 
   const drawGrid = (ctx: CanvasRenderingContext2D) => {
     ctx.save();
-    ctx.globalAlpha = 0.3;
+    ctx.globalAlpha = 0.1;
     ctx.lineWidth = 0.5;
     for (let x = 0; x <= ROWS; x++) {
       ctx.beginPath(); // Start a new path
@@ -152,7 +152,7 @@ function App() {
     const mouseCoords = getGridAlignedCoordsFromMousePosition();
     // @ts-ignore
     ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 0).fill();
-    // drawGrid(ctx);
+    drawGrid(ctx);
 
     const gridMouseCoords = getGridCoordsFromMousePosition();
     grid.current.every((row, y) => {
