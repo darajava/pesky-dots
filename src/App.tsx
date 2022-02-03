@@ -151,7 +151,7 @@ function App() {
 
     const mouseCoords = getGridAlignedCoordsFromMousePosition();
     // @ts-ignore
-    ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 5).fill();
+    ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 100).fill();
     drawGrid(ctx);
 
     const gridMouseCoords = getGridCoordsFromMousePosition();
