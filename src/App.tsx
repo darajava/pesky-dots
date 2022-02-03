@@ -29,7 +29,7 @@ const CELL_PADDING = 5;
 const P1_COLOR = "#5ea4e3";
 const P2_COLOR = "black";
 
-const BACKGROUND_COLOR = "smokewhite";
+const BACKGROUND_COLOR = "#ffffff";
 
 const ws = new WebSocket(
   process.env.NODE_ENV === "development"
