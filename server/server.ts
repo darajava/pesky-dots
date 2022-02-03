@@ -4,9 +4,9 @@ import { Board, GameState, Position } from "common/dist/types";
 const wss = new WebSocketServer({ port: 42069 });
 
 // These must match the client
-const COLUMNS = 14;
-const ROWS = 10;
-const FILLED_ROWS = 3;
+const COLUMNS = 15;
+const ROWS = 12;
+const FILLED_ROWS = 4;
 
 let gameState: GameState = {};
 
