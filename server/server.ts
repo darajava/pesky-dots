@@ -4,9 +4,9 @@ import { Board, GameState, Position } from "common/dist/types";
 const wss = new WebSocketServer({ port: 42069 });
 
 // These must match the client
-const COLUMNS = 27;
-const ROWS = 20;
-const FILLED_ROWS = 6;
+const COLUMNS = 14;
+const ROWS = 10;
+const FILLED_ROWS = 3;
 
 let gameState: GameState = {};
 
@@ -156,7 +156,7 @@ const broadcast = (message: string) => {
 wss.on("connection", function connection(ws) {
   gameState.board = generateInitialGrid();
   console.log("started");
-  const id = Math.round(Math.random() * 1000000);
+  const id = Math.round(Math.random() * 1000000000);
 
   connections.push({ ws, id });
 
