@@ -64,7 +64,7 @@ function App() {
 
   const drawGrid = (ctx: CanvasRenderingContext2D) => {
     ctx.save();
-    ctx.globalAlpha = 0.1;
+    ctx.globalAlpha = 0.2;
     ctx.lineWidth = 0.5;
     for (let x = 0; x <= ROWS; x++) {
       ctx.beginPath(); // Start a new path
@@ -147,11 +147,11 @@ function App() {
     ctx.fillStyle = BACKGROUND_COLOR;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = `#797979`;
+    ctx.fillStyle = `#cccccc`;
 
     const mouseCoords = getGridAlignedCoordsFromMousePosition();
     // @ts-ignore
-    ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 0).fill();
+    ctx.roundRect(...mouseCoords, CELL_WIDTH, CELL_HEIGHT, 5).fill();
     drawGrid(ctx);
 
     const gridMouseCoords = getGridCoordsFromMousePosition();
